@@ -1,99 +1,255 @@
-let canvas= document.getElementById('canvas')
-let ctx=document.getContext('2d')
-let vidas= 3 ;
-// voy a manejar vidas puntaje actual puntaje dentro del nivel siempre va a ser cero
-let puntajeAct= 0;
-//puntaje dentro del juego nunca va a ser cero
+const canvas = document.querySelector('canvas')
+const ctx = canvas.getContext('2d')
+
+const images = {
+  img1: 'imagenes/fondo.jpg',
+  imag2: 'imagenes/negan.png',
+  imag3: 'imagenes/mascara.png'
+}
+const squish=document.createElement('audio')
+squish.src='imagenes/squish.mp3'
+const zombieFondo=document.createElement('audio')
+zombieFondo.src='imagenes/zombiefondo.mp3'
+
+
+//funciones
+class Board{
+  constructor(img){
+    this.x = 0
+    this.y = 0  
+    this.width = canvas.width
+    this.height = canvas.height
+    this.img = new Image()
+    this.img.src = img
+    this.img.onload = ()=>{
+      this.draw() // draw image when image has alredy charged
+    }
+  }
+  // METHOD
+  draw(){
+    
+    ctx.drawImage(this.img,this.x,this.y,this.width,this.height)
+    
+  
+  }
+}
+
+/////CLASS mira ////////
+class Character {
+  constructor(x,y,img){
+    this.x = x
+    this.y = y
+    this.img = new Image()
+    this.img.src = img
+    this.img.onload = ()=>{
+    this.draw() // draw image when image has alrady charged
+    }
+  }
+  draw(){
+    ctx.drawImage(this.img,this.x,this.y,50,50)
+  }
+  
+  moveRight(){
+    this.x+=10
+    if(this.x>canvas.width-50)this.x=canvas.width-50
+
+  }
+  
+  moveLeft(){
+    this.x-=10
+    if(this.x<0)this.x=0
+  }
+  
+  moveUp(){
+    this.y-=10
+    if(this.y<0)this.y=0
+  }
+  
+  moveDown(){
+    this.y+=10
+    if(this.y>canvas.height-50)this.y=canvas.height-50
+  }
+  isTouching(zombie){
+    
+    return (this.x < zombie.x + zombie.width) &&
+    (this.x + 15  > zombie.x) &&
+    (this.y < zombie.y + zombie.height) &&
+    (this.y + 15 > zombie.y)
+  }
+}
+
+const board = new Board(images.img1)
+const mira = new Character(280,200,images.imag2)
+const mira2 = new Character(320,200,images.imag2)
+
+
+let frames = 0
+let interval
+
+function update() {
+  ctx.clearRect(0,0,canvas.width,canvas.height)
+  board.draw()
+  
+   
+  frames++ 
+  
+  generateZombies();
+  drawZombies();
+  mira.draw();
+  mira2.draw();
+  drawInfo();
+  checkCollition();
+  
+}
+
+function startGame(){
+  if(interval) return
+  interval = setInterval(update,1000/60)
+}
+
+// EVENT 
+addEventListener('keydown',e =>{
+  switch(e.keyCode){
+    case 32:
+      startGame()
+      playSound(zombieFondo)
+      break
+    case 39:
+      return mira.moveRight()
+      break
+    case 37:
+      return mira.moveLeft()
+      break
+    case 38:
+      return mira.moveUp()
+      break
+    case 40:
+      return mira.moveDown()
+      break
+  }
+})
+addEventListener('keydown',e =>{
+  switch(e.keyCode){
+    
+    case 68:
+      return mira2.moveRight()
+      break
+    case 65:
+      return mira2.moveLeft()
+      break
+    case 87:
+      return mira2.moveUp()
+      break
+    case 83:
+      return mira2.moveDown()
+      break
+  }
+})
+
+
+
+//helper zombies
+
+class Zombies {
+  constructor(x, y = 0) {
+    this.x = x
+    this.y = y
+    this.width = 20
+    this.height = 50
+    this.img1 = new Image()
+    this.img1.src = 'imagenes/mascara.png'
+  }
+  draw() {
+  
+      ctx.drawImage(this.img1,this.x,this.y,50,50)
+    
+    this.y++
+    if (this.y>400 && vidas === 0) gameOver()
+    if(this.y===400) vidas--
+    
+     
+  }
+}
+function gameOver() {
+  clearInterval(interval)
+  ctx.font = '60px serif'
+  ctx.fillText('Perdedor', 200, 150)
+zombieFondo.pause();
+}
+
+let obstacles=[]
+function generateZombies(){
+
+  let randomWidth = Math.floor(Math.random() * canvas.height) 
+  if (frames % 80 === 0) {
+    let obs1 = new Zombies(randomWidth,0)
+    
+    obstacles.push(obs1)
+    
+  }
+}
+
+function drawZombies() {
+  obstacles.forEach(obstacle => {
+    obstacle.draw()
+  })
+}
+
+function checkCollition(){
+  obstacles.forEach((zombie, i) =>  {
+    
+   if (mira.isTouching(zombie) || mira2.isTouching(zombie)) {
+     
+     puntajeActual +=5
+  
+    obstacles.splice(i,1);
+    playSound(squish);
+  
+   } 
+  })
+}
+let vidas=3;
+let puntajeActual=0;
+
+function drawInfo(){
+  ctx.font = '15px serif';
+  ctx.fillStyle='red';
+  ctx.fillText('Vidas restantes :'+ vidas, 10, 30);
+  ctx.fillText('Puntaje:'+ puntajeActual, 500, 30);
+}
+
+function playSound(s){
+  s.currentTime=0;
+  s.play();
+}
+
+
+
+
+
+
+
+/*
 let puntajeG= 0;
 let nivel= 0;
 let boton= document.getElementById('boton');
 //para agregarle el evento a mi boton es bueno dividir la interfas grafica y la otra la parte logica para depurar mas facil
-boton.addEventListener('click',play)//con este primero paso los eventos primero paso el string y despues paso la funcion sin parentesis porque ya el addevent ya le esta mandando los parametros para devolverle info del juego
+
+//boton.addEventListener('click',play)//con este primero paso los eventos primero paso el string y despues paso la funcion sin parentesis porque ya el addevent ya le esta mandando los parametros para devolverle info del juego
 
 
-//gun
-let gun = {
-  x: canvas.width/2,
-  y:canvas.height-10,
-  w: 10,
-  h:20,
-  img:document.createElement('img'),
-  left:false,
-  rigth:false,
-  speed: 7
-  
-}
-//primero accedo a la variable img de mi objeto gun y src acceso  a la propiedad src de mi objeto img
-//primero le tengo que dar una ruta a mi funcion img de mi arma
-gun.img.src='ruta'
-//funcion para dibujar mi arma
-function drawGun(){
-  ctx.drawImage(gun.img.this.x,this.y)
-  function moveGun(){}
-  if(gun.left&& this.x<canvas.width-gun.w){
-    gun.this.x+=gun.speed
-  } else if (gun.rigth&& this.x>0){
-    gun.this.x-=gun.speed
-  }
-}
-//estoy llamando mi funcion de forma anonima directamente ahi estoy poniendo el codigo de la funcion
-document.addEventListener('keydown',function(){
-  if(event.keyCode==39){
-    gun.left=true
-  } else if(event.keyCode==37){
-    gun.rith=true
-  }
-  
-});
-document.addEventListener('keyup',function(){
-  if(event.keyCode==39){
-    gun.left=false
-  } else if(event.keyCode==37){
-    gun.rith=false
-  }
-  
-})
 
-function playSound(){}
-function aumentarnivel(){}
-function drawInfo(){
-  ctx.fillStyle='yellow'
-  ctx.fillText('vidas restantes'+ vidas,5,15)
-  ctx.fillText('nivel:'+ nivel,canvas.width,-50,15)
-}
+
+
 function endGame(){
   
-  document.location.reload()//actualizar la pagina se recetea el juego o puedo recetear todas las variables
-}
+  document.location.reload()//actualizar la pagina se recetea el juego o puedo recetear todas las vari
 
 
 
-function draw(){
-  //nos permite limpiar el canvas para que nos cree el efecto deanimacion
-  ctx.clearRect(0,0,canvas.width,canvas.height)
-  drawGun()
-  drawInfo()
-  
-}
-//cada vez que me mueva quiero actualizar el estado del juego
-function actualizar(){
-  moveGun()
-}
-//
-function colisiones(){}
-// cuadros de juego mi juego se ejecuta en un bucle aqui voy a llamar a todas las funciones este es el motor de todo mi juego 
-function frame(){
-  function actualizar()
-  function colisiones()
-  function draw()
-  //duda ayuda a arrancar el bucle la llama recursivamente para poder controlar la funcion frame ya que si solo coloco la palabra frame lo va  llamar a la velocidad del procesador
-  requestAnimationFrame(frame)
-}
 //funcion que inicie mi juego
 function play(){
   //ocultar mi boton de inicio 
-  let modal= document.getElementById('modal')
-  modal.css.display='none'
-  //arrancar nuestro bucle al llamarlo
-  frame()
-}
+ // let modal = document.getElementById('modal')
+  //modal.style.display='none'
+*/
